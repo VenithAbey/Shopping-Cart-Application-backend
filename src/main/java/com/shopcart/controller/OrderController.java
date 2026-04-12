@@ -26,6 +26,12 @@ public class OrderController {
         return ResponseEntity.ok(orderService.getUserOrders(user));
     }
 
+    @GetMapping("/all")
+    @PreAuthorize("hasRole('admin')")
+    public ResponseEntity<List<Order>> getAllOrders() {
+        return ResponseEntity.ok(orderService.getAllOrders());
+    }
+
     @GetMapping("/{id}")
     public ResponseEntity<Order> getOrder(@PathVariable Long id,
                                            @AuthenticationPrincipal User user) {
