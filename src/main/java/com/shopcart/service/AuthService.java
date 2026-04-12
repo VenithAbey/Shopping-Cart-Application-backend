@@ -40,6 +40,28 @@ public class AuthService {
                 .build();
     }
 
+    public AuthResponse signupAdmin(SignupRequest request) {
+        if (userRepository.existsByEmail(request.getEmail())) {
+            throw new RuntimeException("Email already in use");
+        }
+
+        User user = User.builder()
+                .name(request.getName())
+                .email(request.getEmail())
+                .password(passwordEncoder.encode(request.getPassword()))
+                .role(User.Role.admin)
+                .build();
+
+        user = userRepository.save(user);
+        String token = jwtUtil.generateToken(user.getEmail());
+
+        return AuthResponse.builder()
+                .token(token)
+                .user(AuthResponse.UserDto.from(user))
+                .message("Admin registered successfully")
+                .build();
+    }
+
     public AuthResponse login(LoginRequest request) {
         User user = userRepository.findByEmail(request.getEmail())
                 .orElseThrow(() -> new RuntimeException("Invalid email or password"));

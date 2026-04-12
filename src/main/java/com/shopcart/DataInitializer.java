@@ -154,22 +154,7 @@ public class DataInitializer implements CommandLineRunner {
     }
 
     private void seedUsers() {
-        if (userRepository.count() > 0) return;
-
-        userRepository.save(User.builder()
-                .name("Demo User")
-                .email("demo@example.com")
-                .password(passwordEncoder.encode("demo123"))
-                .role(User.Role.user)
-                .build());
-
-        userRepository.save(User.builder()
-                .name("Admin User")
-                .email("admin@example.com")
-                .password(passwordEncoder.encode("admin123"))
-                .role(User.Role.admin)
-                .build());
-
-        log.info("Seeded demo users: demo@example.com / demo123, admin@example.com / admin123");
+        // No default users seeded — admin accounts are created via /admin signup portal.
+        log.info("No default users seeded. Use /admin to create the first admin account.");
     }
 }
