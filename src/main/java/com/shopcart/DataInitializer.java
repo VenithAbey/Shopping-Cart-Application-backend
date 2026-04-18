@@ -49,7 +49,7 @@ public class DataInitializer implements CommandLineRunner {
             jdbcTemplate.execute("DELETE FROM users WHERE role = 'admin';"); // Wipes old admins
             jdbcTemplate.execute("SET FOREIGN_KEY_CHECKS = 1;");
             log.warn("Wipe Complete!");
-        } else if (categoryRepository.count() > 0 && userRepository.countByRole("admin") > 0) {
+        } else if (categoryRepository.count() > 0 && userRepository.countByRole(User.Role.admin) > 0) {
             log.info("Sri Lankan database already seeded. Skipping initialization.");
             return;
         }
@@ -60,14 +60,14 @@ public class DataInitializer implements CommandLineRunner {
     }
 
     private void seedMasterAdmin() {
-        if (userRepository.countByRole("admin") == 0) {
+        if (userRepository.countByRole(User.Role.admin) == 0) {
             if (adminEmail != null && adminPassword != null) {
                 log.info("No admin accounts detected. Seeding Secure Master Admin from Environment Variables!");
                 User masterAdmin = User.builder()
                     .name("Master Administrator")
                     .email(adminEmail)
                     .password(passwordEncoder.encode(adminPassword))
-                    .role("admin")
+                    .role(User.Role.admin)
                     .build();
                 userRepository.save(masterAdmin);
             } else {
