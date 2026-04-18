@@ -2,13 +2,17 @@ package com.shopcart;
 
 import com.shopcart.entity.Category;
 import com.shopcart.entity.Product;
+import com.shopcart.entity.User;
 import com.shopcart.repository.CategoryRepository;
 import com.shopcart.repository.ProductRepository;
+import com.shopcart.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.stereotype.Component;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.beans.factory.annotation.Value;
 
 import java.math.BigDecimal;
 
@@ -19,7 +23,15 @@ public class DataInitializer implements CommandLineRunner {
 
     private final CategoryRepository categoryRepository;
     private final ProductRepository productRepository;
+    private final UserRepository userRepository;
+    private final PasswordEncoder passwordEncoder;
     private final JdbcTemplate jdbcTemplate;
+
+    @Value("${ADMIN_EMAIL:#{null}}")
+    private String adminEmail;
+
+    @Value("${ADMIN_PASSWORD:#{null}}")
+    private String adminPassword;
 
     @Override
     public void run(String... args) {
@@ -34,15 +46,34 @@ public class DataInitializer implements CommandLineRunner {
             jdbcTemplate.execute("TRUNCATE TABLE orders;");
             jdbcTemplate.execute("TRUNCATE TABLE products;");
             jdbcTemplate.execute("TRUNCATE TABLE categories;");
+            jdbcTemplate.execute("DELETE FROM users WHERE role = 'admin';"); // Wipes old admins
             jdbcTemplate.execute("SET FOREIGN_KEY_CHECKS = 1;");
             log.warn("Wipe Complete!");
-        } else if (categoryRepository.count() > 0) {
+        } else if (categoryRepository.count() > 0 && userRepository.countByRole("admin") > 0) {
             log.info("Sri Lankan database already seeded. Skipping initialization.");
             return;
         }
 
         seedCategories();
         seedProducts();
+        seedMasterAdmin();
+    }
+
+    private void seedMasterAdmin() {
+        if (userRepository.countByRole("admin") == 0) {
+            if (adminEmail != null && adminPassword != null) {
+                log.info("No admin accounts detected. Seeding Secure Master Admin from Environment Variables!");
+                User masterAdmin = User.builder()
+                    .name("Master Administrator")
+                    .email(adminEmail)
+                    .password(passwordEncoder.encode(adminPassword))
+                    .role("admin")
+                    .build();
+                userRepository.save(masterAdmin);
+            } else {
+                log.error("CRITICAL: No admins exist, and ADMIN_EMAIL/ADMIN_PASSWORD environment variables are missing! Cannot seed Master Admin.");
+            }
+        }
     }
 
     private void seedCategories() {
