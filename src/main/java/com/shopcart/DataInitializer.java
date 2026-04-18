@@ -259,11 +259,11 @@ public class DataInitializer implements CommandLineRunner {
         p(snacks, "Munchee Chick Bites Spicy Chips 90g",   "Spicy fried corn-based chips",                        180, 200, "corn,chips,spicy");
 
         // ── SNACKS ─ Nuts ──────────────────────────────────────────────────
-        p(snacks, "Roasted Cashew Nuts 200g",              "Premium Sri Lankan cashew nuts — lightly roasted",    850, 150, "cashew,nuts,roasted");
-        p(snacks, "Mixed Nuts Party Pack 200g",            "Premium assorted nuts — cashews, almonds and peanuts", 950, 100, "mixed,nuts,bowl");
-        p(snacks, "Roasted Peanuts Kadala 300g",           "Crunchy dry-roasted groundnut peanuts nuts",          250, 300, "peanut,nuts,roasted");
-        p(snacks, "Pistachios Roasted Nuts 150g",          "Imported premium pistachios nuts for snacking",      1150,  60, "pistachio,nuts,green");
-        p(snacks, "Almonds Raw Nuts 200g",                 "Nutritious whole natural almonds nuts",               980,  80, "almond,nuts,raw");
+        p(snacks, "Roasted Cashew Nuts 200g",              "Premium Sri Lankan cashew nuts — lightly roasted and salted",    850, 150, "cashew,roasted,food");
+        p(snacks, "Mixed Nuts Party Pack 200g",            "Premium assorted nuts — cashews, almonds and peanuts blend",    950, 100, "cashew,almond,walnut");
+        p(snacks, "Roasted Peanuts Kadala 300g",           "Crunchy dry-roasted groundnut peanuts nuts",          250, 300, "peanut,groundnut,roasted");
+        p(snacks, "Pistachios Roasted Nuts 150g",          "Imported premium pistachios nuts for snacking",      1150,  60, "pistachio,nut,green");
+        p(snacks, "Almonds Raw Nuts 200g",                 "Nutritious whole natural almonds nuts",               980,  80, "almond,nut,food");
 
         // ── SNACKS ─ Cookies ───────────────────────────────────────────────
         p(snacks, "Oreo Chocolate Cream Cookies 137g",    "Iconic sandwich cookies with sweet cream filling",     380, 250, "oreo,cookies,chocolate");
