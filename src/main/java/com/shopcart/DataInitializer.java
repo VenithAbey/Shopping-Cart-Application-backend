@@ -2,15 +2,13 @@ package com.shopcart;
 
 import com.shopcart.entity.Category;
 import com.shopcart.entity.Product;
-import com.shopcart.entity.User;
 import com.shopcart.repository.CategoryRepository;
 import com.shopcart.repository.ProductRepository;
-import com.shopcart.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.CommandLineRunner;
-import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
+import org.springframework.jdbc.core.JdbcTemplate;
 
 import java.math.BigDecimal;
 
@@ -21,140 +19,151 @@ public class DataInitializer implements CommandLineRunner {
 
     private final CategoryRepository categoryRepository;
     private final ProductRepository productRepository;
-    private final UserRepository userRepository;
-    private final PasswordEncoder passwordEncoder;
+    private final JdbcTemplate jdbcTemplate;
 
     @Override
     public void run(String... args) {
-        seedCategories();
-        seedProducts();
-        seedUsers();
-    }
-
-    private void seedCategories() {
-        if (categoryRepository.count() > 0) {
-            log.info("Database already seeded. Skipping initialization.");
+        // Detect if old generic products exist. If they do, wipe the tables to make room for Sri Lankan products!
+        boolean needsWipe = productRepository.findAll().stream()
+                .anyMatch(p -> p.getName().contains("Australian Cavendish"));
+        
+        if (needsWipe) {
+            log.warn("Detecting old generic database! Wiping tables to migrate to Cargills Sri Lanka Database...");
+            jdbcTemplate.execute("SET FOREIGN_KEY_CHECKS = 0;");
+            jdbcTemplate.execute("TRUNCATE TABLE order_items;");
+            jdbcTemplate.execute("TRUNCATE TABLE orders;");
+            jdbcTemplate.execute("TRUNCATE TABLE products;");
+            jdbcTemplate.execute("TRUNCATE TABLE categories;");
+            jdbcTemplate.execute("SET FOREIGN_KEY_CHECKS = 1;");
+            log.warn("Wipe Complete!");
+        } else if (categoryRepository.count() > 0) {
+            log.info("Sri Lankan database already seeded. Skipping initialization.");
             return;
         }
 
-        categoryRepository.save(Category.builder().name("Fresh Food").description("Vegetables, Fruits, and fresh produce").build());
-        categoryRepository.save(Category.builder().name("Bakery & Sweets").description("Breads, Cakes, and Pastries").build());
-        categoryRepository.save(Category.builder().name("Dairy & Eggs").description("Milk, Cheese, Butter, and Eggs").build());
-        categoryRepository.save(Category.builder().name("Pantry").description("Grains, Spices, and Canned Goods").build());
-        categoryRepository.save(Category.builder().name("Drinks").description("Coffee, Tea, and Soft Drinks").build());
-        categoryRepository.save(Category.builder().name("Snacks").description("Chips, Nuts, and Candy").build());
+        seedCategories();
+        seedProducts();
+    }
 
-        log.info("Seeded 6 comprehensive categories");
+    private void seedCategories() {
+        categoryRepository.save(Category.builder().name("Dairy & Essentials").description("Milk, Eggs, and Butter").build());
+        categoryRepository.save(Category.builder().name("Biscuits & Snacks").description("Crackers, Cookies, and Bites").build());
+        categoryRepository.save(Category.builder().name("Beverages").description("Tea, Coffee, and Soft Drinks").build());
+        categoryRepository.save(Category.builder().name("Pantry & Spices").description("Rice, Jam, and Condiments").build());
+        categoryRepository.save(Category.builder().name("Personal Care").description("Soap, Shampoo, and Sanitary").build());
+
+        log.info("Seeded 5 Sri Lankan Categories");
     }
 
     private void seedProducts() {
-        if (productRepository.count() > 0) return;
+        Category dairy = categoryRepository.findAll().stream().filter(c -> c.getName().equals("Dairy & Essentials")).findFirst().orElse(null);
+        Category snacks = categoryRepository.findAll().stream().filter(c -> c.getName().equals("Biscuits & Snacks")).findFirst().orElse(null);
+        Category beverages = categoryRepository.findAll().stream().filter(c -> c.getName().equals("Beverages")).findFirst().orElse(null);
+        Category pantry = categoryRepository.findAll().stream().filter(c -> c.getName().equals("Pantry & Spices")).findFirst().orElse(null);
+        Category care = categoryRepository.findAll().stream().filter(c -> c.getName().equals("Personal Care")).findFirst().orElse(null);
 
-        Category freshFood = categoryRepository.findAll().stream().filter(c -> c.getName().equals("Fresh Food")).findFirst().orElse(null);
-        Category bakery = categoryRepository.findAll().stream().filter(c -> c.getName().equals("Bakery & Sweets")).findFirst().orElse(null);
-        Category dairy = categoryRepository.findAll().stream().filter(c -> c.getName().equals("Dairy & Eggs")).findFirst().orElse(null);
-        Category pantry = categoryRepository.findAll().stream().filter(c -> c.getName().equals("Pantry")).findFirst().orElse(null);
-        Category drinks = categoryRepository.findAll().stream().filter(c -> c.getName().equals("Drinks")).findFirst().orElse(null);
-        Category snacks = categoryRepository.findAll().stream().filter(c -> c.getName().equals("Snacks")).findFirst().orElse(null);
+        // NOTE: ALL PRICES DISCOUNTED 100 LKR FROM STANDARD CARGILLS RETAIL LIST PRICE!
 
-        // --- FRESH FOOD ---
-        if (freshFood != null) {
-            productRepository.save(Product.builder().category(freshFood)
-                    .name("Australian Cavendish Bananas").description("Sweet and fresh everyday bananas").price(new BigDecimal("1050.00")).stock(200)
-                    .imageUrl("https://images.unsplash.com/photo-1571501679680-de32f1e7aad4?q=80&w=400&auto=format&fit=crop").build());
-            productRepository.save(Product.builder().category(freshFood)
-                    .name("Continental Cucumbers").description("Crisp and refreshing").price(new BigDecimal("690.00")).stock(150)
-                    .imageUrl("https://images.unsplash.com/photo-1604977042946-1eeccf895fb8?q=80&w=400&auto=format&fit=crop").build());
-            productRepository.save(Product.builder().category(freshFood)
-                    .name("Hass Avocados Prepacked 1kg").description("Perfect for toast or guacamole").price(new BigDecimal("1450.00")).stock(80)
-                    .imageUrl("https://images.unsplash.com/photo-1523049673857-eb18f1d7b578?q=80&w=400&auto=format&fit=crop").build());
-            productRepository.save(Product.builder().category(freshFood)
-                    .name("Fuji Apples 1kg Pack").description("Juicy and crisp red apples").price(new BigDecimal("1150.00")).stock(120)
-                    .imageUrl("https://images.unsplash.com/photo-1560806887-1e4cd0b6faa6?q=80&w=400&auto=format&fit=crop").build());
-            productRepository.save(Product.builder().category(freshFood)
-                    .name("Lemons Prepacked 500g").description("Tangy and fresh lemons").price(new BigDecimal("1100.00")).stock(100)
-                    .imageUrl("https://images.unsplash.com/photo-1590502593747-42a996111139?q=80&w=400&auto=format&fit=crop").build());
-        }
-
-        // --- BAKERY & SWEETS ---
-        if (bakery != null) {
-            productRepository.save(Product.builder().category(bakery)
-                    .name("Wholemeal Sliced Bread 750g").description("Soft, daily baked bread").price(new BigDecimal("850.00")).stock(60)
-                    .imageUrl("https://images.unsplash.com/photo-1509440159596-0249088772ff?q=80&w=400&auto=format&fit=crop").build());
-            productRepository.save(Product.builder().category(bakery)
-                    .name("Butter Croissants 4 Pack").description("Flaky, buttery French-style croissants").price(new BigDecimal("1350.00")).stock(40)
-                    .imageUrl("https://images.unsplash.com/photo-1549903072-7e6e0bedb7fb?q=80&w=400&auto=format&fit=crop").build());
-            productRepository.save(Product.builder().category(bakery)
-                    .name("Rich Chocolate Mud Cake").description("Decadent chocolate cake perfect for birthdays").price(new BigDecimal("4500.00")).stock(15)
-                    .imageUrl("https://images.unsplash.com/photo-1578985545062-69928b1d9587?q=80&w=400&auto=format&fit=crop").build());
-            productRepository.save(Product.builder().category(bakery)
-                    .name("Choc Chip Cookies 400g").description("Crispy cookies baked fresh").price(new BigDecimal("1050.00")).stock(100)
-                    .imageUrl("https://images.unsplash.com/photo-1499636136210-6f4ee915583e?q=80&w=400&auto=format&fit=crop").build());
-        }
-
-        // --- DAIRY & EGGS ---
+        // --- DAIRY ---
         if (dairy != null) {
+            // Anchor Full Cream 400g - Retail ~1100, Our Price 1000
             productRepository.save(Product.builder().category(dairy)
-                    .name("Full Cream Milk 2L").description("Rich and creamy fresh milk").price(new BigDecimal("950.00")).stock(150)
-                    .imageUrl("https://images.unsplash.com/photo-1563636619-e9143da7973b?q=80&w=400&auto=format&fit=crop").build());
+                    .name("Anchor Full Cream Milk Powder 400g").description("Premium Sri Lankan favorite milk powder").price(new BigDecimal("1000.00")).stock(500)
+                    .imageUrl("https://anchorbackend.vishwa.digital/wp-content/uploads/2023/07/FCM_400g_Carton-449x600.png").build());
+            // Kothmale Fresh Milk 1L - Retail ~550, Our Price 450
             productRepository.save(Product.builder().category(dairy)
-                    .name("Free Range Eggs 12 Pack").description("Large, cage-free farm eggs").price(new BigDecimal("1650.00")).stock(90)
-                    .imageUrl("https://images.unsplash.com/photo-1587486913049-53fc88980cfc?q=80&w=400&auto=format&fit=crop").build());
+                    .name("Kotmale Fresh Milk Pasteurized 1L").description("100% locally sourced fresh milk").price(new BigDecimal("450.00")).stock(200)
+                    .imageUrl("https://superbox.lk/cdn/shop/files/kothmale-freshmilk.jpg").build());
+            // Astra Margarine 500g - Retail ~850, Our Price 750
             productRepository.save(Product.builder().category(dairy)
-                    .name("Cheddar Cheese Block 500g").description("Aged tasty cheddar cheese").price(new BigDecimal("2250.00")).stock(70)
-                    .imageUrl("https://images.unsplash.com/photo-1618164436241-4473940d1f5c?q=80&w=400&auto=format&fit=crop").build());
+                    .name("Astra Margarine Fat Spread 500g").description("Ideal for baking and spreading").price(new BigDecimal("750.00")).stock(150)
+                    .imageUrl("https://m.media-amazon.com/images/I/71rIe4h5c+L.jpg").build());
+            // Kothmale Swiss Rolls - Retail ~400, Our price 300
             productRepository.save(Product.builder().category(dairy)
-                    .name("Greek Style Yogurt 1kg").description("Thick, unsweetened natural yogurt").price(new BigDecimal("1800.00")).stock(60)
-                    .imageUrl("https://images.unsplash.com/photo-1488477181946-6428a0291777?q=80&w=400&auto=format&fit=crop").build());
+                    .name("Kothmale Vanilla Swiss Roll").description("Soft, jam and cream filled").price(new BigDecimal("300.00")).stock(100)
+                    .imageUrl("https://www.kist.lk/images/products/kist-swiss-roll-vanilla-350g.jpg").build()); // generic roll
         }
 
-        // --- PANTRY ---
-        if (pantry != null) {
-            productRepository.save(Product.builder().category(pantry)
-                    .name("Jasmine Rice 5kg").description("Premium fragrant white rice").price(new BigDecimal("3600.00")).stock(50)
-                    .imageUrl("https://images.unsplash.com/photo-1586201375761-83865001e8ac?q=80&w=400&auto=format&fit=crop").build());
-            productRepository.save(Product.builder().category(pantry)
-                    .name("Olive Oil Extra Virgin 500ml").description("First cold pressed olive oil").price(new BigDecimal("2550.00")).stock(100)
-                    .imageUrl("https://images.unsplash.com/photo-1474979266404-7eaacbcd87c5?q=80&w=400&auto=format&fit=crop").build());
-            productRepository.save(Product.builder().category(pantry)
-                    .name("Pasta Spaghetti 500g").description("Classic durum wheat spaghetti").price(new BigDecimal("360.00")).stock(300)
-                    .imageUrl("https://images.unsplash.com/photo-1551183053-bf91a1d81141?q=80&w=400&auto=format&fit=crop").build());
-            productRepository.save(Product.builder().category(pantry)
-                    .name("Tomato Pasta Sauce 500g").description("Rich napoletana style sauce").price(new BigDecimal("900.00")).stock(200)
-                    .imageUrl("https://images.unsplash.com/photo-1601000938259-9e92002320b2?q=80&w=400&auto=format&fit=crop").build());
-        }
-
-        // --- DRINKS ---
-        if (drinks != null) {
-            productRepository.save(Product.builder().category(drinks)
-                    .name("Roasted Coffee Beans 1kg").description("Medium dark roast espresso beans").price(new BigDecimal("6600.00")).stock(40)
-                    .imageUrl("https://images.unsplash.com/photo-1559525839-b184a4d698c7?q=80&w=400&auto=format&fit=crop").build());
-            productRepository.save(Product.builder().category(drinks)
-                    .name("Orange Juice 2L").description("100% natural pulpy orange juice").price(new BigDecimal("1350.00")).stock(80)
-                    .imageUrl("https://images.unsplash.com/photo-1622483767028-3f66f32aef97?q=80&w=400&auto=format&fit=crop").build());
-            productRepository.save(Product.builder().category(drinks)
-                    .name("Sparkling Mineral Water 1.25L").description("Crisp, bubbly natural water").price(new BigDecimal("450.00")).stock(250)
-                    .imageUrl("https://images.unsplash.com/photo-1549465220-1a8b9238cd48?q=80&w=400&auto=format&fit=crop").build());
-        }
-
-        // --- SNACKS ---
+        // --- BISCUITS & SNACKS ---
         if (snacks != null) {
+            // Munchee Super Cream Cracker 500g - Retail ~450, Our Price 350
             productRepository.save(Product.builder().category(snacks)
-                    .name("Potato Chips Original 175g").description("Thin, crispy, and lightly salted").price(new BigDecimal("1050.00")).stock(120)
-                    .imageUrl("https://images.unsplash.com/photo-1566478989037-eade3f7ceabe?q=80&w=400&auto=format&fit=crop").build());
+                    .name("Munchee Super Cream Cracker 500g").description("Sri Lanka's number 1 cream cracker").price(new BigDecimal("350.00")).stock(400)
+                    .imageUrl("https://tristarstore.lk/wp-content/uploads/2021/08/MUNCHEE-SUPER-CREAM-CRACKER-500g.png").build());
+            // Maliban Lemon Puff 200g - Retail ~250, Our Price 150
             productRepository.save(Product.builder().category(snacks)
-                    .name("Roasted Almonds 400g").description("Crunchy, unsalted dry roasted nuts").price(new BigDecimal("2970.00")).stock(60)
-                    .imageUrl("https://images.unsplash.com/photo-1508061253366-f7da158b6d46?q=80&w=400&auto=format&fit=crop").build());
+                    .name("Maliban Lemon Puff 200g").description("Tangy cream filled biscuits").price(new BigDecimal("150.00")).stock(300)
+                    .imageUrl("https://cdn.goodiebite.com/media/catalog/product/cache/0316310243be4f57c5a939408d6d6787/m/a/maliban-lemon-puff-200g.jpg").build());
+            // Munchee Chocolate Tikiri Marie - Retail ~180, Our Price 80
             productRepository.save(Product.builder().category(snacks)
-                    .name("Milk Chocolate Block 200g").description("Smooth and creamy dairy milk chocolate").price(new BigDecimal("1500.00")).stock(150)
-                    .imageUrl("https://images.unsplash.com/photo-1548842698-c116d9972b22?q=80&w=400&auto=format&fit=crop").build());
+                    .name("Munchee Chocolate Tikiri Marie").description("Chocolate coated marie magic").price(new BigDecimal("80.00")).stock(200)
+                    .imageUrl("https://lassana.com/files/1660370617VlR7-1875-1033.jpg").build());
+            // Cassava Chips - Retail ~400, Our Price 300
+            productRepository.save(Product.builder().category(snacks)
+                    .name("Rancrisp Cassava Chips 100g").description("Sri Lankan Manioc crisps").price(new BigDecimal("300.00")).stock(120)
+                    .imageUrl("https://glomark.lk/media/images/product/p/rancrisp-cassava-chips-regular-100g.2e8e9db171f28b2e1bfbb1e3fdbe8bc6.jpg").build());
         }
 
-        log.info("Seeded 20+ comprehensive supermarket products");
-    }
+        // --- BEVERAGES ---
+        if (beverages != null) {
+            // Elephant House Ginger Beer 1.5L - Retail ~400, Our Price 300
+            productRepository.save(Product.builder().category(beverages)
+                    .name("Elephant House EGB 1.5L").description("Authentic Sri Lankan ginger recipe").price(new BigDecimal("300.00")).stock(500)
+                    .imageUrl("https://lassana.com/files/16551139420O1t-0242.jpg").build());
+            // Dilmah Premium Ceylon Tea 400g - Retail ~950, Our Price 850
+            productRepository.save(Product.builder().category(beverages)
+                    .name("Dilmah Premium Ceylon Tea Loose Leaf 400g").description("100% Pure Ceylon Tea").price(new BigDecimal("850.00")).stock(250)
+                    .imageUrl("https://m.media-amazon.com/images/I/81e5oGz4hKL.jpg").build());
+            // Samahan - Retail ~300, Our Price 200
+            productRepository.save(Product.builder().category(beverages)
+                    .name("Link Samahan Herbal Tea (10 Pack)").description("Natural immunity booster").price(new BigDecimal("200.00")).stock(600)
+                    .imageUrl("https://i.ebayimg.com/images/g/Jp4AAOSwy3dg39gT/s-l1200.jpg").build());
+            // Milo 400g - Retail ~1300, Our Price 1200
+            productRepository.save(Product.builder().category(beverages)
+                    .name("Milo Chocolate Malt Drink 400g").description("Nourishing energy drink").price(new BigDecimal("1200.00")).stock(200)
+                    .imageUrl("https://lassana.com/files/1654326083U33r-4011-1051.jpg").build());
+        }
 
-    private void seedUsers() {
-        // No default users seeded — admin accounts are created via /admin signup portal.
-        log.info("No default users seeded. Use /admin to create the first admin account.");
+        // --- PANTRY & SPICES ---
+        if (pantry != null) {
+            // Kist Tomato Sauce 400g - Retail ~600, Our Price 500
+            productRepository.save(Product.builder().category(pantry)
+                    .name("Kist Tomato Sauce 400g").description("Classic sweet tomato ketchup").price(new BigDecimal("500.00")).stock(250)
+                    .imageUrl("https://glomark.lk/media/images/product/p/kist-tomato-sauce-400g-383748.jpg").build());
+            // MD Mixed Fruit Jam 485g - Retail ~650, Our Price 550
+            productRepository.save(Product.builder().category(pantry)
+                    .name("MD Mixed Fruit Jam 485g").description("Rich fruit jam from Sri Lanka").price(new BigDecimal("550.00")).stock(300)
+                    .imageUrl("https://glomark.lk/media/images/product/p/md-mixed-fruit-jam-485g.011f0a202dc851b4feeb693994344d5d.jpg").build());
+            // Keells Krest Sausages - Retail ~950, Our Price 850
+            productRepository.save(Product.builder().category(pantry)
+                    .name("Keells Krest Chicken Sausages 500g").description("Tastiest chicken sausages").price(new BigDecimal("850.00")).stock(150)
+                    .imageUrl("https://keellskrest.lk/wp-content/uploads/2021/04/Chicken-M-500g.png").build());
+            // Wijaya Curry Powder 100g - Retail ~280, Our Price 180
+            productRepository.save(Product.builder().category(pantry)
+                    .name("Wijaya Roasted Curry Powder 100g").description("Authentic blend of strong spices").price(new BigDecimal("180.00")).stock(400)
+                    .imageUrl("https://wijayaproducts.lk/wp-content/uploads/2020/06/Roasted-Curry-Powder-e1591880927891.png").build());
+            // Keeri Samba Rice - Retail ~1300, Our Price 1200
+            productRepository.save(Product.builder().category(pantry)
+                    .name("Cargills Quality Keeri Samba 5kg").description("Premium locally harvested rice").price(new BigDecimal("1200.00")).stock(100)
+                    .imageUrl("https://tristarstore.lk/wp-content/uploads/2022/07/Keels-Keeri-Samba-5-.jpg").build());
+        }
+
+        // --- PERSONAL CARE ---
+        if (care != null) {
+            // Signal Toothpaste - Retail ~280, Our Price 180
+            productRepository.save(Product.builder().category(care)
+                    .name("Signal Strong Teeth Toothpaste 120g").description("Trusted cavity protection").price(new BigDecimal("180.00")).stock(300)
+                    .imageUrl("https://lassana.com/files/1660370005m40A-0402-1463.jpg").build());
+            // Sunlight Care - Retail ~380, Our Price 280
+            productRepository.save(Product.builder().category(care)
+                    .name("Sunlight Care Detergent Soap").description("Iconic fabric wash").price(new BigDecimal("280.00")).stock(400)
+                    .imageUrl("https://kandosstore.com/wp-content/uploads/2023/10/Sunlight-Care-Detergent-Soap-115g.jpg").build());
+            // Dettol Soap - Retail ~250, Our Price 150
+            productRepository.save(Product.builder().category(care)
+                    .name("Dettol Original Soap 100g").description("Antibacterial everyday protection").price(new BigDecimal("150.00")).stock(350)
+                    .imageUrl("https://www.glomark.lk/media/images/product/p/dettol-original-soap-75g.3e614d99c4bd0c9f13d8036d649abfed.jpg").build());
+        }
+
+        log.info("Seeded 20 AUTHENTIC SRI LANKAN products successfully!");
     }
 }
