@@ -9,6 +9,12 @@ import com.shopcart.security.JwtUtil;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.web.client.RestTemplate;
+import org.springframework.http.ResponseEntity;
+
+import java.util.Map;
+import java.util.List;
+import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
@@ -81,5 +87,55 @@ public class AuthService {
 
     public AuthResponse.UserDto getProfile(User user) {
         return AuthResponse.UserDto.from(user);
+    }
+
+    public AuthResponse firebaseLogin(String firebaseHashToken) {
+        try {
+            RestTemplate restTemplate = new RestTemplate();
+            String url = "https://identitytoolkit.googleapis.com/v1/accounts:lookup?key=AIzaSyB85Lk_p5D-MsKFJ9_p0JHrMGRBwe_-OZE";
+            Map<String, String> requestBody = Map.of("idToken", firebaseHashToken);
+            ResponseEntity<Map> response = restTemplate.postForEntity(url, requestBody, Map.class);
+            
+            if (response.getStatusCode().is2xxSuccessful() && response.getBody() != null) {
+                List<Map<String, Object>> users = (List<Map<String, Object>>) response.getBody().get("users");
+                if (users != null && !users.isEmpty()) {
+                    Map<String, Object> firebaseUser = users.get(0);
+                    String email = (String) firebaseUser.get("email");
+                    String displayName = (String) firebaseUser.get("displayName");
+                    
+                    if (email == null) {
+                        throw new RuntimeException("Email not found in Firebase token");
+                    }
+                    if (displayName == null || displayName.isEmpty()) {
+                        displayName = email.split("@")[0];
+                    }
+
+                    // Auto-register user if they do not exist
+                    User localUser = userRepository.findByEmail(email).orElse(null);
+                    if (localUser == null) {
+                        localUser = User.builder()
+                                .name(displayName)
+                                .email(email)
+                                // Generate a completely random un-guessable password since they use OAuth
+                                .password(passwordEncoder.encode(UUID.randomUUID().toString()))
+                                .role(User.Role.user)
+                                .build();
+                        localUser = userRepository.save(localUser);
+                    }
+
+                    // Generate local JWT mapping to their MySQL account
+                    String token = jwtUtil.generateToken(localUser.getEmail());
+
+                    return AuthResponse.builder()
+                            .token(token)
+                            .user(AuthResponse.UserDto.from(localUser))
+                            .message("Firebase Login Successful")
+                            .build();
+                }
+            }
+            throw new RuntimeException("Invalid Firebase token response");
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to authenticate Firebase Token: " + e.getMessage());
+        }
     }
 }

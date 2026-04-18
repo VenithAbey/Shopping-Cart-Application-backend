@@ -45,4 +45,9 @@ public class AuthController {
         // JWT is stateless — client removes token
         return ResponseEntity.ok(Map.of("message", "Logged out successfully"));
     }
+
+    @PostMapping("/firebase")
+    public ResponseEntity<AuthResponse> firebaseLogin(@RequestBody Map<String, String> request) {
+        return ResponseEntity.ok(authService.firebaseLogin(request.get("token")));
+    }
 }
