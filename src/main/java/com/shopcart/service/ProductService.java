@@ -17,12 +17,13 @@ public class ProductService {
     private final ProductRepository productRepository;
     private final CategoryRepository categoryRepository;
 
-    public List<Product> getAll(Long categoryId, String search) {
-        if (categoryId == null && (search == null || search.isBlank())) {
+    public List<Product> getAll(String categoryName, String search) {
+        String cat = (categoryName == null || categoryName.isBlank()) ? null : categoryName;
+        String searchTerm = (search == null || search.isBlank()) ? null : search;
+        if (cat == null && searchTerm == null) {
             return productRepository.findAll();
         }
-        String searchTerm = (search == null || search.isBlank()) ? null : search;
-        return productRepository.findByCategoryAndSearch(categoryId, searchTerm);
+        return productRepository.findByCategoryNameAndSearch(cat, searchTerm);
     }
 
     public Product getById(Long id) {

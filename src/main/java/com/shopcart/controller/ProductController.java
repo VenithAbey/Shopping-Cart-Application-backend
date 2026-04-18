@@ -20,9 +20,9 @@ public class ProductController {
 
     @GetMapping
     public ResponseEntity<List<Product>> getAll(
-            @RequestParam(required = false) Long categoryId,
+            @RequestParam(required = false) String categoryName,
             @RequestParam(required = false) String search) {
-        return ResponseEntity.ok(productService.getAll(categoryId, search));
+        return ResponseEntity.ok(productService.getAll(categoryName, search));
     }
 
     @GetMapping("/{id}")
