@@ -39,7 +39,6 @@ public class ProductController {
                 new BigDecimal(body.get("price").toString()),
                 (Integer) body.get("stock"),
                 (String) body.get("imageUrl"),
-                (String) body.get("subcategory"),
                 Long.valueOf(body.get("categoryId").toString())
         ));
     }
@@ -57,7 +56,6 @@ public class ProductController {
                 price,
                 (Integer) body.get("stock"),
                 (String) body.get("imageUrl"),
-                (String) body.get("subcategory"),
                 categoryId
         ));
     }

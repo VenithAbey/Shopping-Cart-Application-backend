@@ -32,7 +32,7 @@ public class ProductService {
     }
 
     public Product create(String name, String description, BigDecimal price, Integer stock,
-                          String imageUrl, String subcategory, Long categoryId) {
+                          String imageUrl, Long categoryId) {
         Category category = categoryRepository.findById(categoryId)
                 .orElseThrow(() -> new RuntimeException("Category not found"));
 
@@ -42,7 +42,6 @@ public class ProductService {
                 .price(price)
                 .stock(stock)
                 .imageUrl(imageUrl)
-                .subcategory(subcategory)
                 .category(category)
                 .build();
 
@@ -50,7 +49,7 @@ public class ProductService {
     }
 
     public Product update(Long id, String name, String description, BigDecimal price,
-                          Integer stock, String imageUrl, String subcategory, Long categoryId) {
+                          Integer stock, String imageUrl, Long categoryId) {
         Product product = getById(id);
 
         if (name != null) product.setName(name);
@@ -58,7 +57,6 @@ public class ProductService {
         if (price != null) product.setPrice(price);
         if (stock != null) product.setStock(stock);
         if (imageUrl != null) product.setImageUrl(imageUrl);
-        if (subcategory != null) product.setSubcategory(subcategory);
         if (categoryId != null) {
             Category category = categoryRepository.findById(categoryId)
                     .orElseThrow(() -> new RuntimeException("Category not found"));
