@@ -63,7 +63,7 @@ public class DataInitializer implements CommandLineRunner {
 
             // Check if products exist but have no subcategory (upgrade scenario)
             long totalProducts = productRepository.count();
-            long nullSubcategoryCount = totalProducts > 0
+            Long nullSubcategoryCount = totalProducts > 0
                     ? jdbcTemplate.queryForObject("SELECT COUNT(*) FROM products WHERE subcategory IS NULL", Long.class)
                     : 0L;
 
