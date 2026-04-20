@@ -39,29 +39,61 @@ public class DataInitializer implements CommandLineRunner {
 
     @Override
     public void run(String... args) {
-        boolean needsWipe = categoryRepository.findAll().stream()
-                .anyMatch(c -> c.getName().equals("Dairy & Essentials")
-                        || c.getName().equals("Biscuits & Snacks")
-                        || c.getName().equals("Beverages"));
+        try {
+            // Fast check: does DB have the old category schema?
+            boolean needsWipe = categoryRepository.existsByName("Dairy & Essentials")
+                    || categoryRepository.existsByName("Biscuits & Snacks")
+                    || categoryRepository.existsByName("Beverages");
 
-        if (needsWipe) {
-            log.warn("Old category schema detected! Wiping and re-seeding...");
-            jdbcTemplate.execute("SET FOREIGN_KEY_CHECKS = 0;");
-            jdbcTemplate.execute("TRUNCATE TABLE order_items;");
-            jdbcTemplate.execute("TRUNCATE TABLE orders;");
-            jdbcTemplate.execute("TRUNCATE TABLE products;");
-            jdbcTemplate.execute("TRUNCATE TABLE categories;");
-            jdbcTemplate.execute("DELETE FROM users WHERE role = 'admin';");
-            jdbcTemplate.execute("SET FOREIGN_KEY_CHECKS = 1;");
-            log.warn("Wipe complete!");
-        } else if (categoryRepository.count() > 0 && userRepository.countByRole(User.Role.admin) > 0) {
-            log.info("Full Sri Lankan catalog already seeded. Skipping.");
-            return;
+            if (needsWipe) {
+                log.warn("Old category schema detected! Wiping and re-seeding...");
+                jdbcTemplate.execute("SET FOREIGN_KEY_CHECKS = 0;");
+                jdbcTemplate.execute("TRUNCATE TABLE order_items;");
+                jdbcTemplate.execute("TRUNCATE TABLE orders;");
+                jdbcTemplate.execute("TRUNCATE TABLE products;");
+                jdbcTemplate.execute("TRUNCATE TABLE categories;");
+                jdbcTemplate.execute("DELETE FROM users WHERE role = 'admin';");
+                jdbcTemplate.execute("SET FOREIGN_KEY_CHECKS = 1;");
+                log.warn("Wipe complete!");
+                seedCategories();
+                seedProducts();
+                seedMasterAdmin();
+                return;
+            }
+
+            // Check if products exist but have no subcategory (upgrade scenario)
+            long totalProducts = productRepository.count();
+            long nullSubcategoryCount = totalProducts > 0
+                    ? jdbcTemplate.queryForObject("SELECT COUNT(*) FROM products WHERE subcategory IS NULL", Long.class)
+                    : 0L;
+
+            boolean subcategoryMissing = nullSubcategoryCount != null && nullSubcategoryCount > 0;
+
+            if (subcategoryMissing) {
+                log.warn("{} products have null subcategory — updating subcategories via re-seed...", nullSubcategoryCount);
+                jdbcTemplate.execute("SET FOREIGN_KEY_CHECKS = 0;");
+                jdbcTemplate.execute("TRUNCATE TABLE order_items;");
+                jdbcTemplate.execute("TRUNCATE TABLE orders;");
+                jdbcTemplate.execute("TRUNCATE TABLE products;");
+                jdbcTemplate.execute("SET FOREIGN_KEY_CHECKS = 1;");
+                seedProducts();
+                seedMasterAdmin();
+                return;
+            }
+
+            // All good — already seeded
+            if (categoryRepository.count() > 0 && userRepository.countByRole(User.Role.admin) > 0) {
+                log.info("Full Sri Lankan catalog already seeded. Skipping.");
+                return;
+            }
+
+            seedCategories();
+            seedProducts();
+            seedMasterAdmin();
+
+        } catch (Exception e) {
+            log.error("DataInitializer failed (will retry on next deploy): {}", e.getMessage());
         }
-
-        seedCategories();
-        seedProducts();
-        seedMasterAdmin();
     }
 
     private void seedMasterAdmin() {
