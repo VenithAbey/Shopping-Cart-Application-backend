@@ -17,7 +17,7 @@ import org.springframework.beans.factory.annotation.Value;
 import java.math.BigDecimal;
 
 @Slf4j
-@Component
+// @Component // Disabled so it never reseeds and overwrites your custom image URLs
 @RequiredArgsConstructor
 public class DataInitializer implements CommandLineRunner {
 
