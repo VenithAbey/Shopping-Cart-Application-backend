@@ -14,14 +14,12 @@ import java.util.List;
 import java.util.Map;
 
 @Slf4j
-@Component
 @RequiredArgsConstructor
-public class SriLankaProductsSeeder implements CommandLineRunner {
+public class SriLankaProductsSeeder {
 
     private final CategoryRepository categoryRepository;
     private final ProductRepository productRepository;
 
-    @Override
     public void run(String... args) {
         log.info("Deleting the 48 seeded Sri Lankan products...");
 
