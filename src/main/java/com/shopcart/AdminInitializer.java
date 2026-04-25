@@ -17,24 +17,31 @@ public class AdminInitializer implements CommandLineRunner {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
 
-    @Value("${ADMIN_EMAIL:admin@shopcart.com}")
+    @Value("${ADMIN_EMAIL:#{null}}")
     private String adminEmail;
 
-    @Value("${ADMIN_PASSWORD:admin}")
+    @Value("${ADMIN_PASSWORD:#{null}}")
     private String adminPassword;
 
     @Override
     public void run(String... args) {
+        if (adminEmail == null || adminPassword == null || adminEmail.isBlank() || adminPassword.isBlank()) {
+            log.warn("ADMIN_EMAIL or ADMIN_PASSWORD environment variables are missing! No Master Admin will be created.");
+            return;
+        }
+
+        // Check if the exact Master Admin already exists
         if (userRepository.findAll().stream().noneMatch(u -> u.getEmail().equals(adminEmail))) {
-            log.info("Default admin not found. Seeding Master Admin: {}", adminEmail);
+            log.info("Master Admin not found in database. Seeding Master Admin from environment variables: {}", adminEmail);
             userRepository.save(User.builder()
                     .name("Master Administrator")
                     .email(adminEmail)
                     .password(passwordEncoder.encode(adminPassword))
                     .role(User.Role.admin).build());
-            log.info("Master Admin created successfully. You can log in with Email: {} and Password: {}", adminEmail, adminPassword);
+            log.info("Master Admin created successfully! Email: {}", adminEmail);
         } else {
-            log.info("Default Master Admin ({}) already exists.", adminEmail);
+            // Optional: You could update the password here if they changed it in Render, but leaving it as is for safety.
+            log.info("Master Admin ({}) already exists in the database.", adminEmail);
         }
     }
 }
